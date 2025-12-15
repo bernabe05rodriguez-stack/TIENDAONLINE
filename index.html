@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASCOTITAS | Tu alimento de confianza</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%231B3C59' stroke='%231B3C59' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Ccircle cx='19' cy='5' r='3'/%3E%3Ccircle cx='5' cy='5' r='3'/%3E%3Cpath d='M12 17.5c-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5 4.5 2 4.5 4.5-2 4.5-4.5 4.5Z'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .text-navy { color: #1B3C59; } 
+        .bg-navy { background-color: #1B3C59; }
+        .text-brown { color: #5D4037; } 
+        .hidden-section { display: none !important; }
+    </style>
+</head>
+<body class="bg-[#FDFBF7] text-[#5D4037]">
+
+    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-[#F5EFE0]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-24"> 
+                <a href="#" class="flex items-center cursor-pointer gap-3 group">
+                    <i data-lucide="paw-print" class="h-10 w-10 md:h-12 md:w-12 text-[#1B3C59] group-hover:rotate-12 transition-transform"></i>
+                    <span class="font-extrabold text-4xl md:text-5xl text-[#1B3C59] tracking-wide">MASC<span class="text-[#8B5E3C]">🐾</span>TITAS</span>
+                </a>
+                <div class="flex items-center gap-4">
+                    <div id="nav-cart" class="relative cursor-pointer p-3 hover:bg-[#F5EFE0] rounded-full transition" onclick="toggleCart()">
+                        <i data-lucide="shopping-cart" class="h-6 w-6 text-[#1B3C59]"></i>
+                        <span id="cart-count" class="absolute top-0 right-0 bg-[#8B5E3C] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transform scale-0 transition-transform duration-200">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="shop-view">
+        <div class="bg-[#F5EFE0] relative overflow-hidden">
+            <i data-lucide="paw-print" class="absolute top-10 left-10 h-16 w-16 text-[#1B3C59] opacity-5 -rotate-12"></i>
+            <i data-lucide="paw-print" class="absolute bottom-10 right-20 h-24 w-24 text-[#8B5E3C] opacity-5 rotate-12"></i>
+            <div class="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between relative z-10">
+                <div class="mb-8 md:mb-0 text-center md:text-left">
+                    <h1 class="text-4xl md:text-6xl font-extrabold mb-6 text-[#1B3C59] leading-tight">Tu alimento <br>de confianza</h1>
+                    <p class="text-[#5D4037] text-lg mb-8 font-medium">La mejor nutrición para tus mascotas en Mendoza.</p>
+                    <a href="#catalogo" class="bg-[#1B3C59] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-[#2c5275] transition transform hover:scale-105 inline-flex items-center gap-2">
+                        Ver Catálogo <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                    </a>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-0 bg-[#8B5E3C] rounded-full opacity-10 blur-3xl transform translate-x-4 translate-y-4"></div>
+                    <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Perros felices" class="relative rounded-3xl shadow-2xl border-4 border-white w-full max-w-md mx-auto md:max-w-lg object-cover h-64 md:h-80">
+                </div>
+            </div>
+        </div>
+
+        <div id="catalogo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-[#1B3C59]">Nuestros Productos</h2>
+                <div class="h-1 w-20 bg-[#8B5E3C] mx-auto mt-2 rounded-full"></div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 justify-between mb-10 items-center bg-white p-4 rounded-xl shadow-sm border border-[#F5EFE0]">
+                <div id="category-filters" class="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
+                    </div>
+                <div class="relative w-full md:w-80">
+                    <input type="text" id="search-input" placeholder="Buscar alimento..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B3C59] bg-gray-50">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 h-4 w-4 text-gray-400"></i>
+                </div>
+            </div>
+
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                <div class="col-span-full text-center py-20">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1B3C59] mx-auto mb-4"></div>
+                    <p class="text-xl font-medium text-[#5D4037]">Cargando catálogo...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="main-footer" class="bg-[#1B3C59] text-white py-12 mt-10 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-2 bg-[#8B5E3C]"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+                <div class="flex flex-col items-center md:items-start">
+                    <h2 class="text-3xl font-extrabold tracking-wide mb-2">MASC<span class="text-[#dca980]">🐾</span>TITAS</h2>
+                    <p class="text-gray-300 mb-6">Tu alimento de confianza.</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="bg-[#8B5E3C] p-3 rounded-full mb-4"><i data-lucide="clock" class="h-6 w-6 text-white"></i></div>
+                    <h3 class="text-lg font-bold mb-2">Horarios de Atención</h3>
+                    <p class="text-[#dca980] font-bold text-lg">9:00 hs a 20:00 hs</p>
+                </div>
+                <div class="flex flex-col items-center md:items-end">
+                    <p class="text-gray-400 text-sm mb-4">Dorrego, Mendoza</p>
+                    <a href="https://wa.me/5492615016555" class="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebd59] text-white px-4 py-2 rounded-full font-bold transition shadow-lg">
+                        <i data-lucide="phone" class="h-5 w-5"></i> 261-5016555
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-white/10 mt-10 pt-6 text-center text-sm text-gray-400">
+                <p>© 2025 Mascotitas Alimentos.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="cart-overlay" class="fixed inset-0 bg-[#1B3C59] bg-opacity-60 z-50 hidden backdrop-blur-sm transition-opacity" onclick="toggleCart()"></div>
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col border-l border-gray-200">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-[#FDFBF7]">
+            <h2 class="font-bold text-xl text-[#1B3C59] flex items-center gap-2">
+                <i data-lucide="shopping-bag" class="text-[#8B5E3C]"></i> Tu Pedido
+            </h2>
+            <button onclick="toggleCart()" class="text-gray-400 hover:text-red-500 transition"><i data-lucide="x" class="h-6 w-6"></i></button>
+        </div>
+        <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4 bg-white"></div>
+        <div class="p-6 border-t border-gray-100 bg-[#FDFBF7]">
+            <div class="flex justify-between items-end mb-6">
+                <span class="text-gray-500 font-medium">Total Estimado</span>
+                <span id="cart-total" class="text-2xl font-extrabold text-[#1B3C59]">$0</span>
+            </div>
+            <button onclick="checkoutWhatsApp()" class="w-full bg-[#25D366] hover:bg-[#1ebd59] text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:scale-[1.02] flex justify-center items-center gap-2">
+                <i data-lucide="message-circle" class="h-6 w-6"></i> Confirmar por WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        // TU ENLACE DE GOOGLE SHEETS (CSV)
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTd2Ked_OEGMeZmPg1zLqpsyJixQv4Oyjzecje-UVXSMjAm7Pb2ZRNzUY3Zu8hsIOl8VBYnup9TS9t/pub?output=csv"; 
+        const WHATSAPP_NUMBER = "5492615016555"; 
+
+        // --- ESTADO ---
+        let products = [];
+        let categories = [];
+        let cart = [];
+        let currentCategory = 'all';
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadDataFromSheets();
+            document.getElementById('search-input').addEventListener('input', (e) => renderShop(e.target.value));
+        });
+
+        // --- CARGAR DATOS DESDE GOOGLE SHEETS ---
+        function loadDataFromSheets() {
+            Papa.parse(SHEET_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const rawData = results.data;
+                    
+                    products = rawData.map(item => ({
+                        id: item.id || Math.random().toString(36).substr(2, 9),
+                        name: item.name,
+                        desc: item.desc || '',
+                        price: parseFloat(item.price) || 0,
+                        stock: parseInt(item.stock) || 0,
+                        category: item.category ? item.category.toLowerCase().trim() : 'varios',
+                        image: item.image || 'https://placehold.co/300x300?text=Sin+Foto'
+                    })).filter(p => p.name && !isNaN(p.price)); // Filtrar filas vacías
+
+                    // Calcular categorías únicas
+                    const uniqueCats = [...new Set(products.map(p => p.category))];
+                    categories = uniqueCats.map(c => ({ 
+                        id: c, 
+                        name: c.charAt(0).toUpperCase() + c.slice(1) 
+                    })).sort((a, b) => a.name.localeCompare(b.name));
+
+                    renderCategories();
+                    renderShop();
+                },
+                error: function(err) {
+                    console.error("Error leyendo Excel:", err);
+                    document.getElementById('product-grid').innerHTML = `<div class="col-span-full text-center text-red-500">Error al cargar productos.</div>`;
+                }
+            });
+        }
+
+        // --- RENDERIZADO ---
+        function formatPrice(price) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price); }
+
+        function renderShop(searchTerm = '') {
+            const grid = document.getElementById('product-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            let filtered = products;
+            if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+            if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 opacity-50"><i data-lucide="search" class="h-16 w-16 mx-auto mb-4 text-[#8B5E3C]"></i><p class="text-xl font-medium text-[#5D4037]">No hay productos que coincidan.</p></div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            filtered.forEach(p => {
+                const outOfStock = p.stock <= 0;
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
+                card.innerHTML = `
+                    <div class="relative h-56 bg-[#F9F9F9] overflow-hidden">
+                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        ${outOfStock ? '<div class="absolute inset-0 bg-[#1B3C59] bg-opacity-70 flex items-center justify-center text-white font-bold uppercase tracking-widest backdrop-blur-sm">Agotado</div>' : ''}
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm text-[#1B3C59] border border-gray-100">${p.stock} unid.</div>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col">
+                        <div class="mb-2"><span class="text-[10px] uppercase font-bold text-[#8B5E3C] tracking-wider">${p.category}</span></div>
+                        <h3 class="font-bold text-[#1B3C59] text-lg leading-tight mb-1">${p.name}</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">${p.desc}</p>
+                        <div class="mt-auto flex justify-between items-center pt-4 border-t border-dashed border-gray-100">
+                            <span class="text-[#1B3C59] font-extrabold text-xl">${formatPrice(p.price)}</span>
+                            <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''} class="h-10 w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function renderCategories() {
+            const filterContainer = document.getElementById('category-filters');
+            filterContainer.innerHTML = `<button onclick="filterCategory('all')" class="cat-btn active bg-[#1B3C59] text-white px-6 py-2 rounded-full text-sm font-semibold shadow-sm transition whitespace-nowrap">Todos</button>`;
+            
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `cat-btn bg-[#F5EFE0] text-[#5D4037] hover:bg-[#e6dac4] px-6 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap`;
+                btn.textContent = cat.name;
+                btn.onclick = () => filterCategory(cat.id);
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        function filterCategory(catId) {
+            currentCategory = catId;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                const isActive = (catId === 'all' && btn.textContent === 'Todos') || 
+                               (btn.onclick.toString().includes(catId) && catId !== 'all');
+                
+                if (isActive) {
+                    btn.className = 'cat-btn active bg-[#1B3C59] text-white px-6 py-2 rounded-full text-sm font-semibold shadow-sm transition whitespace-nowrap';
+                } else {
+                    btn.className = 'cat-btn bg-[#F5EFE0] text-[#5D4037] hover:bg-[#e6dac4] px-6 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap';
+                }
+            });
+            renderShop();
+        }
+
+        // --- CARRITO ---
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const cartItem = cart.find(i => i.id === id);
+            if((cartItem?.quantity || 0) >= product.stock) { Swal.fire({ icon: 'warning', title: 'Stock límite', confirmButtonColor: '#1B3C59' }); return; }
+            cartItem ? cartItem.quantity++ : cart.push({ ...product, quantity: 1 });
+            updateCartUI();
+            const count = document.getElementById('cart-count');
+            count.classList.add('scale-125'); setTimeout(() => count.classList.remove('scale-125'), 200);
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            let total = 0, count = 0;
+            if(cart.length === 0) container.innerHTML = `<div class="text-center py-10 opacity-50"><i data-lucide="shopping-bag" class="h-16 w-16 mx-auto mb-2 text-gray-300"></i><p>Carrito vacío</p></div>`;
+            
+            cart.forEach((item, index) => {
+                total += item.price * item.quantity;
+                count += item.quantity;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3 border border-gray-100 shadow-sm';
+                div.innerHTML = `<div class="h-12 w-12 rounded-lg bg-white p-1 border border-gray-200 flex-shrink-0"><img src="${item.image}" class="w-full h-full object-cover rounded"></div><div class="flex-1 min-w-0"><div class="font-bold text-[#1B3C59] text-sm truncate">${item.name}</div><div class="text-[#8B5E3C] text-xs font-semibold">${item.quantity} x ${formatPrice(item.price)}</div></div><button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                container.appendChild(div);
+            });
+            document.getElementById('cart-total').textContent = formatPrice(total);
+            document.getElementById('cart-count').textContent = count;
+            const badge = document.getElementById('cart-count');
+            count > 0 ? badge.classList.remove('scale-0') : badge.classList.add('scale-0');
+            lucide.createIcons();
+        }
+
+        function removeFromCart(idx) { cart.splice(idx, 1); updateCartUI(); }
+        
+        function toggleCart() {
+            const sb = document.getElementById('cart-sidebar'), ov = document.getElementById('cart-overlay');
+            if(sb.classList.contains('translate-x-full')) { sb.classList.remove('translate-x-full'); ov.classList.remove('hidden'); setTimeout(()=>ov.classList.remove('opacity-0'),10); }
+            else { sb.classList.add('translate-x-full'); ov.classList.add('opacity-0'); setTimeout(()=>ov.classList.add('hidden'),300); }
+        }
+        
+        function checkoutWhatsApp() {
+            if(cart.length===0) return;
+            let msg = "Hola *Mascotitas*! 🐾\nQuiero realizar el siguiente pedido:\n\n";
+            let total = 0;
+            cart.forEach(i => { msg += `▪️ ${i.quantity}x ${i.name} ($${i.price*i.quantity})\n`; total += i.price*i.quantity; });
+            msg += `\n*TOTAL: ${formatPrice(total)}*\n\nQuedo a la espera para coordinar el pago. Gracias!`;
+            window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
+        }
+    </script>
+</body>
+</html>
