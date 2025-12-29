@@ -161,9 +161,60 @@
         </div>
     </div>
 
+    <!-- Product Modal -->
+    <div id="product-modal" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeProductModal()"></div>
+        <div class="relative z-10 flex items-center justify-center min-h-screen px-4 py-4 sm:p-6 pointer-events-none">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all scale-100 pointer-events-auto flex flex-col md:flex-row max-h-[90vh] md:max-h-[80vh] relative">
+
+                <button onclick="closeProductModal()" class="absolute top-4 right-4 z-20 bg-white/80 hover:bg-white text-gray-500 hover:text-red-500 p-2 rounded-full transition shadow-sm backdrop-blur">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+
+                <div class="w-full md:w-1/2 bg-gray-50 relative flex items-center justify-center p-4 md:p-8 h-64 md:h-auto">
+                    <img id="modal-img" src="" class="max-w-full max-h-full object-contain drop-shadow-lg transition-all duration-300">
+
+                    <button id="modal-prev-btn" onclick="changeModalImage(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#1B3C59] p-3 rounded-full shadow-md transition backdrop-blur hover:scale-110">
+                        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                    </button>
+                    <button id="modal-next-btn" onclick="changeModalImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#1B3C59] p-3 rounded-full shadow-md transition backdrop-blur hover:scale-110">
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <div class="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto bg-white">
+                    <div class="mb-2">
+                        <span id="modal-category" class="text-xs uppercase font-bold text-[#8B5E3C] tracking-wider bg-[#F5EFE0] px-2 py-1 rounded-md">Category</span>
+                    </div>
+
+                    <h2 id="modal-title" class="text-2xl md:text-3xl font-extrabold text-[#1B3C59] mb-4 leading-tight">Product Name</h2>
+
+                    <p id="modal-desc" class="text-gray-600 mb-6 text-sm leading-relaxed hidden">Description.</p>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Seleccionar Peso:</label>
+                        <div id="modal-variants" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="mt-auto border-t border-gray-100 pt-6">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex flex-col text-center sm:text-left">
+                                <span class="text-xs text-gray-400 font-medium">Precio Final</span>
+                                <span id="modal-price" class="text-3xl font-extrabold text-[#1B3C59]">$0</span>
+                            </div>
+
+                            <div id="modal-controls" class="flex items-center">
+                                <!-- JS Injected Controls -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- CONFIGURACIÓN ---
-        // TU ENLACE DE GOOGLE SHEETS (CSV)
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTd2Ked_OEGMeZmPg1zLqpsyJixQv4Oyjzecje-UVXSMjAm7Pb2ZRNzUY3Zu8hsIOl8VBYnup9TS9t/pub?output=csv";
         const WHATSAPP_NUMBER = "5492615016555";
 
@@ -175,6 +226,7 @@
         let discountApplied = false;
         let selectedVariants = {};
         let productImageIndices = {};
+        let currentModalProduct = null;
 
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -182,63 +234,197 @@
             loadDataFromSheets();
             document.getElementById('search-input').addEventListener('input', (e) => renderShop(e.target.value));
 
-            // Expose selectVariant globally
+            // Global Helpers
             window.selectVariant = function(productId, variantIndex) {
-                // Update state
                 selectedVariants[productId] = variantIndex;
-
-                // Update UI: Price
-                const product = products.find(p => p.id === productId);
-                if(product && product.variants[variantIndex]) {
-                    const newPrice = product.variants[variantIndex].price;
-                    const priceEl = document.getElementById(`price-${productId}`);
-                    if(priceEl) {
-                        priceEl.textContent = formatPrice(newPrice);
-                    }
-                }
-
-                // Update UI: Buttons active state
-                const btns = document.querySelectorAll(`.variant-btn-${productId}`);
-                btns.forEach((btn, idx) => {
-                    if(idx === variantIndex) {
-                        btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-                        btn.classList.add('bg-[#1B3C59]', 'text-white');
-                    } else {
-                        btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-                        btn.classList.remove('bg-[#1B3C59]', 'text-white');
-                    }
-                });
+                const searchVal = document.getElementById('search-input').value;
+                renderShop(searchVal);
+                if(currentModalProduct === productId) updateModalUI();
             };
 
-            // Image Switching Logic
             window.changeImage = function(productId, direction) {
                 const product = products.find(p => p.id === productId);
                 if (!product || product.images.length <= 1) return;
 
-                // Update index
                 let currentIdx = productImageIndices[productId] || 0;
                 let newIdx = currentIdx + direction;
                 if (newIdx >= product.images.length) newIdx = 0;
                 if (newIdx < 0) newIdx = product.images.length - 1;
                 productImageIndices[productId] = newIdx;
 
-                // Update DOM with animation
                 const imgEl = document.getElementById(`img-${productId}`);
                 if (imgEl) {
-                    imgEl.classList.add('opacity-0'); // Start fade out
+                    imgEl.classList.add('opacity-0');
                     setTimeout(() => {
                         imgEl.src = product.images[newIdx];
-                        imgEl.onload = () => {
-                            imgEl.classList.remove('opacity-0'); // Fade in
-                        };
-                        // Fallback if cached or instant
+                        imgEl.onload = () => imgEl.classList.remove('opacity-0');
                         setTimeout(() => imgEl.classList.remove('opacity-0'), 50);
-                    }, 200); // Wait for fade out
+                    }, 200);
                 }
+            };
+
+            // Modal Functions
+            window.openProductModal = function(productId) {
+                currentModalProduct = productId;
+                const product = products.find(p => p.id === productId);
+                if (!product) return;
+
+                document.getElementById('modal-title').textContent = product.name;
+                document.getElementById('modal-desc').textContent = product.desc;
+                if (product.desc) document.getElementById('modal-desc').classList.remove('hidden');
+                else document.getElementById('modal-desc').classList.add('hidden');
+
+                document.getElementById('modal-category').textContent = product.category;
+
+                // Sync image index with grid
+                const idx = productImageIndices[productId] || 0;
+                document.getElementById('modal-img').src = product.images[idx];
+
+                // Show/Hide Modal Arrows
+                const prevBtn = document.getElementById('modal-prev-btn');
+                const nextBtn = document.getElementById('modal-next-btn');
+                if (product.images.length > 1) {
+                    prevBtn.classList.remove('hidden');
+                    nextBtn.classList.remove('hidden');
+                } else {
+                    prevBtn.classList.add('hidden');
+                    nextBtn.classList.add('hidden');
+                }
+
+                updateModalUI();
+
+                const modal = document.getElementById('product-modal');
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.firstElementChild.classList.remove('opacity-0'), 10);
+            };
+
+            window.closeProductModal = function() {
+                const modal = document.getElementById('product-modal');
+                modal.firstElementChild.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    currentModalProduct = null;
+                }, 300);
+            };
+
+            window.changeModalImage = function(direction) {
+                if (!currentModalProduct) return;
+                const p = products.find(x => x.id === currentModalProduct);
+                if (!p || p.images.length <= 1) return;
+
+                let idx = productImageIndices[p.id] || 0;
+                idx += direction;
+                if (idx >= p.images.length) idx = 0;
+                if (idx < 0) idx = p.images.length - 1;
+                productImageIndices[p.id] = idx;
+
+                const imgEl = document.getElementById('modal-img');
+                imgEl.classList.add('opacity-0');
+                setTimeout(() => {
+                    imgEl.src = p.images[idx];
+                    imgEl.onload = () => imgEl.classList.remove('opacity-0');
+                    setTimeout(() => imgEl.classList.remove('opacity-0'), 50);
+                }, 200);
+
+                // Update Grid Image too
+                const gridImg = document.getElementById(`img-${p.id}`);
+                if(gridImg) gridImg.src = p.images[idx];
+            };
+
+            window.updateQuantity = function(id, delta) {
+                const product = products.find(p => p.id === id);
+                if(!product) return;
+
+                const variantIdx = selectedVariants[id] || 0;
+                const variant = product.variants[variantIdx];
+                const variantName = variant ? variant.weight : '';
+                const price = variant ? variant.price : product.price;
+
+                let cartItem = cart.find(i => i.id === id && i.variantName === variantName);
+
+                if (delta > 0) {
+                    if ((cartItem?.quantity || 0) + delta > product.stock) {
+                        Swal.fire({ icon: 'warning', title: 'Stock límite', confirmButtonColor: '#1B3C59' });
+                        return;
+                    }
+                    if (cartItem) {
+                        cartItem.quantity += delta;
+                    } else {
+                        cart.push({ ...product, price: price, variantName: variantName, quantity: delta });
+                    }
+                } else {
+                    if (cartItem) {
+                        cartItem.quantity += delta;
+                        if (cartItem.quantity <= 0) {
+                            cart = cart.filter(i => i !== cartItem);
+                        }
+                    }
+                }
+
+                updateCartUI();
+                const searchVal = document.getElementById('search-input').value;
+                renderShop(searchVal);
+                if (currentModalProduct === id) updateModalUI();
+
+                const count = document.getElementById('cart-count');
+                count.classList.add('scale-125');
+                setTimeout(() => count.classList.remove('scale-125'), 200);
             };
         });
 
-        // --- CARGAR DATOS DESDE GOOGLE SHEETS ---
+        // --- FUNCIONES UI ---
+        function updateModalUI() {
+            if (!currentModalProduct) return;
+            const p = products.find(x => x.id === currentModalProduct);
+            if (!p) return;
+
+            const vIdx = selectedVariants[p.id] || 0;
+            const variant = p.variants[vIdx];
+            const price = variant ? variant.price : p.price;
+            const qty = getCartQuantity(p.id, vIdx);
+
+            document.getElementById('modal-price').textContent = formatPrice(price);
+
+            const variantContainer = document.getElementById('modal-variants');
+            variantContainer.innerHTML = '';
+            p.variants.forEach((v, idx) => {
+                const isSelected = idx === vIdx;
+                const btn = document.createElement('button');
+                btn.className = isSelected
+                    ? 'bg-[#1B3C59] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold transition border border-gray-200';
+                btn.textContent = v.weight;
+                btn.onclick = () => selectVariant(p.id, idx);
+                variantContainer.appendChild(btn);
+            });
+
+            const controlsContainer = document.getElementById('modal-controls');
+            const outOfStock = p.stock <= 0;
+
+            if (qty === 0) {
+                controlsContainer.innerHTML = `
+                    <button onclick="updateQuantity('${p.id}', 1)" ${outOfStock ? 'disabled' : ''} class="w-full sm:w-auto bg-[#1B3C59] hover:bg-[#2c5275] text-white px-8 py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 ${outOfStock ? 'opacity-50 cursor-not-allowed' : ''}">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i> Agregar
+                    </button>`;
+            } else {
+                controlsContainer.innerHTML = `
+                    <div class="flex items-center bg-gray-100 rounded-xl overflow-hidden shadow-inner border border-gray-200">
+                         <button onclick="updateQuantity('${p.id}', -1)" class="w-12 h-12 flex items-center justify-center text-[#1B3C59] hover:bg-gray-200 transition font-bold text-xl">-</button>
+                         <span class="w-12 text-center font-bold text-[#1B3C59] text-lg">${qty}</span>
+                         <button onclick="updateQuantity('${p.id}', 1)" class="w-12 h-12 flex items-center justify-center text-[#1B3C59] hover:bg-gray-200 transition font-bold text-xl">+</button>
+                    </div>`;
+            }
+            lucide.createIcons();
+        }
+
+        function getCartQuantity(id, variantIdx) {
+            const product = products.find(p => p.id === id);
+            if(!product) return 0;
+            const variantName = product.variants[variantIdx] ? product.variants[variantIdx].weight : '';
+            const item = cart.find(i => i.id === id && i.variantName === variantName);
+            return item ? item.quantity : 0;
+        }
+
         function loadDataFromSheets() {
             Papa.parse(SHEET_URL, {
                 download: true,
@@ -246,25 +432,15 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     const rawData = results.data;
-
                     products = rawData.map(item => {
-                        // Parse variants
                         let variants = [];
                         for(let i=1; i<=4; i++) {
-                            const weight = item[`KM ${i}`]; // Note: key has space
+                            const weight = item[`KM ${i}`];
                             const price = parseFloat(item[`Precio ${i}`]);
-                            if(weight && !isNaN(price)) {
-                                variants.push({ weight: weight.trim(), price: price });
-                            }
+                            if(weight && !isNaN(price)) variants.push({ weight: weight.trim(), price: price });
                         }
-
-                        // Sort variants by price ascending (cheapest first)
                         variants.sort((a, b) => a.price - b.price);
-
-                        // Default price is the cheapest variant's price
                         const defaultPrice = variants.length > 0 ? variants[0].price : 0;
-
-                        // Parse images
                         let images = [];
                         if (item['image Principal'] && item['image Principal'].trim()) images.push(item['image Principal'].trim());
                         if (item['image Secundaria'] && item['image Secundaria'].trim()) images.push(item['image Secundaria'].trim());
@@ -275,27 +451,21 @@
                             name: item.name,
                             desc: item.desc || '',
                             variants: variants,
-                            price: defaultPrice, // Base price for sorting/display
+                            price: defaultPrice,
                             stock: parseInt(item.stock) || 0,
                             category: item.category ? item.category.toLowerCase().trim() : 'varios',
                             images: images,
-                            image: images[0] // Default for cart
+                            image: images[0]
                         };
-                    }).filter(p => p.name && p.variants.length > 0); // Only products with variants
+                    }).filter(p => p.name && p.variants.length > 0);
 
-                    // Initialize default selections (index 0 which is cheapest)
                     products.forEach(p => {
                         selectedVariants[p.id] = 0;
                         productImageIndices[p.id] = 0;
                     });
 
-                    // Calcular categorías únicas
                     const uniqueCats = [...new Set(products.map(p => p.category))];
-                    categories = uniqueCats.map(c => ({
-                        id: c,
-                        name: c.charAt(0).toUpperCase() + c.slice(1)
-                    })).sort((a, b) => a.name.localeCompare(b.name));
-
+                    categories = uniqueCats.map(c => ({ id: c, name: c.charAt(0).toUpperCase() + c.slice(1) })).sort((a, b) => a.name.localeCompare(b.name));
                     renderCategories();
                     renderShop();
                 },
@@ -306,7 +476,6 @@
             });
         }
 
-        // --- RENDERIZADO ---
         function formatPrice(price) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price); }
 
         function renderShop(searchTerm = '') {
@@ -326,42 +495,24 @@
 
             filtered.forEach(p => {
                 const outOfStock = p.stock <= 0;
+                let stockText = '', stockClass = 'bg-white/90 text-[#1B3C59] border-gray-100';
 
-                // Logic for stock text and styling
-                let stockText = '';
-                let stockClass = 'bg-white/90 text-[#1B3C59] border-gray-100'; // Default style
-
-                if (p.stock <= 0) {
-                    stockText = 'Agotado';
-                    stockClass = 'bg-gray-100 text-gray-500 border-gray-200';
-                } else if (p.stock === 1) {
-                    stockText = 'Última 1 Unidad';
-                    stockClass = 'bg-orange-50 text-orange-700 border-orange-100';
-                } else if (p.stock === 2) {
-                    stockText = 'Últimas 2 Unidades';
-                    stockClass = 'bg-orange-50 text-orange-700 border-orange-100';
-                } else {
-                    stockText = 'Stock disponible';
-                    stockClass = 'bg-green-50 text-green-700 border-green-100';
-                }
+                if (p.stock <= 0) { stockText = 'Agotado'; stockClass = 'bg-gray-100 text-gray-500 border-gray-200'; }
+                else if (p.stock === 1) { stockText = 'Última 1 Unidad'; stockClass = 'bg-orange-50 text-orange-700 border-orange-100'; }
+                else if (p.stock === 2) { stockText = 'Últimas 2 Unidades'; stockClass = 'bg-orange-50 text-orange-700 border-orange-100'; }
+                else { stockText = 'Stock disponible'; stockClass = 'bg-green-50 text-green-700 border-green-100'; }
 
                 const card = document.createElement('div');
-
-                // Generate variant buttons
                 let variantsHtml = '<div class="flex flex-wrap gap-2 mb-4">';
                 p.variants.forEach((v, idx) => {
-                    // Check if this variant is selected
                     const isSelected = (selectedVariants[p.id] === idx);
                     const activeClass = isSelected ? 'bg-[#1B3C59] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-                    variantsHtml += `<button onclick="selectVariant('${p.id}', ${idx})" class="variant-btn-${p.id} ${activeClass} px-3 py-1 rounded-full text-xs font-bold transition">${v.weight}</button>`;
+                    variantsHtml += `<button onclick="event.stopPropagation(); selectVariant('${p.id}', ${idx})" class="variant-btn-${p.id} ${activeClass} px-3 py-1 rounded-full text-xs font-bold transition">${v.weight}</button>`;
                 });
                 variantsHtml += '</div>';
 
-                // Determine current price to display
                 const currentVariantIdx = selectedVariants[p.id] || 0;
                 const currentPrice = p.variants[currentVariantIdx] ? p.variants[currentVariantIdx].price : p.price;
-
-                // Image Logic
                 const currentImageIdx = productImageIndices[p.id] || 0;
                 const currentImage = p.images[currentImageIdx] || p.images[0];
                 const hasMultipleImages = p.images.length > 1;
@@ -378,7 +529,24 @@
                     `;
                 }
 
+                const qty = getCartQuantity(p.id, currentVariantIdx);
+                let controlsHtml = '';
+                if (qty === 0) {
+                    controlsHtml = `<button onclick="event.stopPropagation(); updateQuantity('${p.id}', 1)" ${outOfStock ? 'disabled' : ''} class="h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>`;
+                } else {
+                    controlsHtml = `
+                        <div class="flex items-center bg-gray-100 rounded-full overflow-hidden shadow-sm border border-gray-200 h-8 md:h-10" onclick="event.stopPropagation()">
+                             <button onclick="updateQuantity('${p.id}', -1)" class="w-8 md:w-10 h-full flex items-center justify-center text-[#1B3C59] hover:bg-gray-200 transition font-bold">-</button>
+                             <span class="text-xs md:text-sm font-bold text-[#1B3C59] min-w-[1rem] text-center">${qty}</span>
+                             <button onclick="updateQuantity('${p.id}', 1)" class="w-8 md:w-10 h-full flex items-center justify-center text-[#1B3C59] hover:bg-gray-200 transition font-bold">+</button>
+                        </div>
+                    `;
+                }
+
                 card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
+                card.onclick = () => openProductModal(p.id);
+                card.style.cursor = 'pointer';
+
                 card.innerHTML = `
                     <div class="relative h-36 md:h-56 bg-white overflow-hidden p-2 md:p-4 group/image">
                         <img id="img-${p.id}" src="${currentImage}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition-opacity duration-300">
@@ -394,7 +562,7 @@
 
                         <div class="mt-auto flex justify-between items-center pt-3 md:pt-4 border-t border-dashed border-gray-100">
                             <span id="price-${p.id}" class="text-[#1B3C59] font-extrabold text-lg md:text-xl">${formatPrice(currentPrice)}</span>
-                            <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''} class="h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                            ${controlsHtml}
                         </div>
                     </div>`;
                 grid.appendChild(card);
@@ -431,36 +599,113 @@
         }
 
         // --- CARRITO ---
-        function addToCart(id) {
-            const product = products.find(p => p.id === id);
+        // addToCart Removed and replaced by updateQuantity in global scope above
 
-            // Get selected variant
-            const variantIdx = selectedVariants[id] || 0;
-            const variant = product.variants[variantIdx];
+        function applyDiscount() {
+            const codeInput = document.getElementById('discount-code');
+            const messageEl = document.getElementById('discount-message');
+            const code = codeInput.value.trim().toUpperCase();
 
-            // Construct unique item ID for cart (Product ID + Variant Weight)
-            // Use a composite key or just compare properties
-            const variantLabel = variant ? variant.weight : '';
-            const finalPrice = variant ? variant.price : product.price;
-
-            const cartItem = cart.find(i => i.id === id && i.variantName === variantLabel);
-
-            if((cartItem?.quantity || 0) >= product.stock) { Swal.fire({ icon: 'warning', title: 'Stock límite', confirmButtonColor: '#1B3C59' }); return; }
-
-            if(cartItem) {
-                cartItem.quantity++;
+            if (code === 'MCO10') {
+                discountApplied = true;
+                messageEl.textContent = '¡Descuento aplicado + Envío Gratis!';
+                messageEl.className = 'text-xs mt-1 text-green-600 font-bold';
+                codeInput.disabled = true;
+                document.getElementById('btn-apply-discount').disabled = true;
+                document.getElementById('btn-apply-discount').classList.add('opacity-50', 'cursor-not-allowed');
+                updateCartUI();
             } else {
-                cart.push({
-                    ...product,
-                    price: finalPrice, // Override base price with variant price
-                    variantName: variantLabel,
-                    quantity: 1
-                });
+                discountApplied = false;
+                messageEl.textContent = 'Código inválido';
+                messageEl.className = 'text-xs mt-1 text-red-500 font-bold';
+                updateCartUI();
+            }
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            let total = 0, count = 0;
+            if(cart.length === 0) container.innerHTML = `<div class="text-center py-10 opacity-50"><i data-lucide="shopping-bag" class="h-16 w-16 mx-auto mb-2 text-gray-300"></i><p>Carrito vacío</p></div>`;
+
+            cart.forEach((item, index) => {
+                total += item.price * item.quantity;
+                count += item.quantity;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3 border border-gray-100 shadow-sm';
+                div.innerHTML = `
+                    <div class="h-12 w-12 rounded-lg bg-white p-1 border border-gray-200 flex-shrink-0">
+                        <img src="${item.image}" class="w-full h-full object-cover rounded">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-[#1B3C59] text-sm truncate">${item.name}</div>
+                        <div class="text-xs text-gray-500 font-medium">${item.variantName ? item.variantName : ''}</div>
+                        <div class="text-[#8B5E3C] text-xs font-semibold">${item.quantity} x ${formatPrice(item.price)}</div>
+                    </div>
+                    <button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                container.appendChild(div);
+            });
+
+            const subtotalRow = document.getElementById('subtotal-row');
+            const discountRow = document.getElementById('discount-row');
+            const subtotalEl = document.getElementById('cart-subtotal');
+            const discountEl = document.getElementById('cart-discount');
+            const totalEl = document.getElementById('cart-total');
+
+            if (discountApplied && total > 0) {
+                const discountAmount = total * 0.10;
+                const finalTotal = total - discountAmount;
+
+                subtotalRow.classList.remove('hidden');
+                discountRow.classList.remove('hidden');
+
+                subtotalEl.textContent = formatPrice(total);
+                discountEl.textContent = '-' + formatPrice(discountAmount);
+                totalEl.textContent = formatPrice(finalTotal);
+            } else {
+                 if(subtotalRow) subtotalRow.classList.add('hidden');
+                 if(discountRow) discountRow.classList.add('hidden');
+                 totalEl.textContent = formatPrice(total);
             }
 
-            updateCartUI();
-            const count = document.getElementById('cart-count');
-            count.classList.add('scale-125'); setTimeout(() => count.classList.remove('scale-125'), 200);
+            document.getElementById('cart-count').textContent = count;
+            const badge = document.getElementById('cart-count');
+            count > 0 ? badge.classList.remove('scale-0') : badge.classList.add('scale-0');
+            lucide.createIcons();
+        }
+
+        function removeFromCart(idx) { cart.splice(idx, 1); updateCartUI(); renderShop(); } // Added renderShop to update buttons
+
+        function toggleCart() {
+            const sb = document.getElementById('cart-sidebar'), ov = document.getElementById('cart-overlay');
+            if(sb.classList.contains('translate-x-full')) { sb.classList.remove('translate-x-full'); ov.classList.remove('hidden'); setTimeout(()=>ov.classList.remove('opacity-0'),10); }
+            else { sb.classList.add('translate-x-full'); ov.classList.add('opacity-0'); setTimeout(()=>ov.classList.add('hidden'),300); }
+        }
+
+        function checkoutWhatsApp() {
+            if(cart.length===0) return;
+            let msg = "Hola *Mascotitas*! 🐾\nQuiero realizar el siguiente pedido:\n\n";
+            let total = 0;
+            cart.forEach(i => {
+                const variantText = i.variantName ? `(${i.variantName}) ` : '';
+                msg += `▪️ ${i.quantity}x ${i.name} ${variantText}($${i.price*i.quantity})\n`;
+                total += i.price*i.quantity;
+            });
+
+            if (discountApplied) {
+                 const discountAmount = total * 0.10;
+                 const finalTotal = total - discountAmount;
+                 msg += `\nSubtotal: ${formatPrice(total)}`;
+                 msg += `\nDescuento (MCO10): -${formatPrice(discountAmount)}`;
+                 msg += `\nEnvío Bonificado: ~$4.300~ 🚚`;
+                 msg += `\n*TOTAL: ${formatPrice(finalTotal)}*`;
+            } else {
+                 msg += `\nEnvío Bonificado: ~$4.300~ 🚚`;
+                 msg += `\n*TOTAL: ${formatPrice(total)}*`;
+            }
+
+            msg += `\n\nPor favor, indícanos tu nombre, email y dirección de entrega por este medio para coordinar el pago y el envío. ¡Muchas gracias!`;
+            window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         function applyDiscount() {
