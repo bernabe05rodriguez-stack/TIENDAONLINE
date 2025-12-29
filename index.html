@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                 <div class="col-span-full text-center py-20">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1B3C59] mx-auto mb-4"></div>
                     <p class="text-xl font-medium text-[#5D4037]">Cargando catálogo...</p>
@@ -380,21 +380,21 @@
 
                 card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
                 card.innerHTML = `
-                    <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4 group/image">
+                    <div class="relative h-36 md:h-56 bg-white overflow-hidden p-2 md:p-4 group/image">
                         <img id="img-${p.id}" src="${currentImage}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition-opacity duration-300">
                         ${arrowsHtml}
-                        <div class="absolute top-3 right-3 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm border ${stockClass}">${stockText}</div>
+                        <div class="absolute top-2 right-2 backdrop-blur px-2 py-0.5 text-[10px] md:text-xs md:px-3 md:py-1 rounded-full font-bold shadow-sm border ${stockClass}">${stockText}</div>
                     </div>
-                    <div class="p-5 flex-1 flex flex-col">
-                        <div class="mb-2"><span class="text-[10px] uppercase font-bold text-[#8B5E3C] tracking-wider">${p.category}</span></div>
-                        <h3 class="font-bold text-[#1B3C59] text-lg leading-tight mb-3">${p.name}</h3>
+                    <div class="p-3 md:p-5 flex-1 flex flex-col">
+                        <div class="mb-1 md:mb-2"><span class="text-[9px] md:text-[10px] uppercase font-bold text-[#8B5E3C] tracking-wider">${p.category}</span></div>
+                        <h3 class="font-bold text-[#1B3C59] text-sm md:text-lg leading-tight mb-2 md:mb-3 line-clamp-2">${p.name}</h3>
 
                         <!-- Variant Selector -->
                         ${variantsHtml}
 
-                        <div class="mt-auto flex justify-between items-center pt-4 border-t border-dashed border-gray-100">
-                            <span id="price-${p.id}" class="text-[#1B3C59] font-extrabold text-xl">${formatPrice(currentPrice)}</span>
-                            <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''} class="h-10 w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                        <div class="mt-auto flex justify-between items-center pt-3 md:pt-4 border-t border-dashed border-gray-100">
+                            <span id="price-${p.id}" class="text-[#1B3C59] font-extrabold text-lg md:text-xl">${formatPrice(currentPrice)}</span>
+                            <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''} class="h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
                         </div>
                     </div>`;
                 grid.appendChild(card);
