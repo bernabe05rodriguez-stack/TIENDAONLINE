@@ -173,12 +173,41 @@
         let cart = [];
         let currentCategory = 'all';
         let discountApplied = false;
+        let selectedVariants = {};
 
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadDataFromSheets();
             document.getElementById('search-input').addEventListener('input', (e) => renderShop(e.target.value));
+
+            // Expose selectVariant globally
+            window.selectVariant = function(productId, variantIndex) {
+                // Update state
+                selectedVariants[productId] = variantIndex;
+
+                // Update UI: Price
+                const product = products.find(p => p.id === productId);
+                if(product && product.variants[variantIndex]) {
+                    const newPrice = product.variants[variantIndex].price;
+                    const priceEl = document.getElementById(`price-${productId}`);
+                    if(priceEl) {
+                        priceEl.textContent = formatPrice(newPrice);
+                    }
+                }
+
+                // Update UI: Buttons active state
+                const btns = document.querySelectorAll(`.variant-btn-${productId}`);
+                btns.forEach((btn, idx) => {
+                    if(idx === variantIndex) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        btn.classList.add('bg-[#1B3C59]', 'text-white');
+                    } else {
+                        btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        btn.classList.remove('bg-[#1B3C59]', 'text-white');
+                    }
+                });
+            };
         });
 
         // --- CARGAR DATOS DESDE GOOGLE SHEETS ---
@@ -190,15 +219,39 @@
                 complete: function(results) {
                     const rawData = results.data;
 
-                    products = rawData.map(item => ({
-                        id: item.id || Math.random().toString(36).substr(2, 9),
-                        name: item.name,
-                        desc: item.desc || '',
-                        price: parseFloat(item.price) || 0,
-                        stock: parseInt(item.stock) || 0,
-                        category: item.category ? item.category.toLowerCase().trim() : 'varios',
-                        image: item.image || 'https://placehold.co/300x300?text=Sin+Foto'
-                    })).filter(p => p.name && !isNaN(p.price)); // Filtrar filas vacías
+                    products = rawData.map(item => {
+                        // Parse variants
+                        let variants = [];
+                        for(let i=1; i<=4; i++) {
+                            const weight = item[`KM ${i}`]; // Note: key has space
+                            const price = parseFloat(item[`Precio ${i}`]);
+                            if(weight && !isNaN(price)) {
+                                variants.push({ weight: weight.trim(), price: price });
+                            }
+                        }
+
+                        // Sort variants by price ascending (cheapest first)
+                        variants.sort((a, b) => a.price - b.price);
+
+                        // Default price is the cheapest variant's price
+                        const defaultPrice = variants.length > 0 ? variants[0].price : 0;
+
+                        return {
+                            id: item.id || Math.random().toString(36).substr(2, 9),
+                            name: item.name,
+                            desc: item.desc || '',
+                            variants: variants,
+                            price: defaultPrice, // Base price for sorting/display
+                            stock: parseInt(item.stock) || 0,
+                            category: item.category ? item.category.toLowerCase().trim() : 'varios',
+                            image: item.image || 'https://placehold.co/300x300?text=Sin+Foto'
+                        };
+                    }).filter(p => p.name && p.variants.length > 0); // Only products with variants
+
+                    // Initialize default selections (index 0 which is cheapest)
+                    products.forEach(p => {
+                        selectedVariants[p.id] = 0;
+                    });
 
                     // Calcular categorías únicas
                     const uniqueCats = [...new Set(products.map(p => p.category))];
@@ -238,6 +291,21 @@
             filtered.forEach(p => {
                 const outOfStock = p.stock <= 0;
                 const card = document.createElement('div');
+
+                // Generate variant buttons
+                let variantsHtml = '<div class="flex flex-wrap gap-2 mb-4">';
+                p.variants.forEach((v, idx) => {
+                    // Check if this variant is selected
+                    const isSelected = (selectedVariants[p.id] === idx);
+                    const activeClass = isSelected ? 'bg-[#1B3C59] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+                    variantsHtml += `<button onclick="selectVariant('${p.id}', ${idx})" class="variant-btn-${p.id} ${activeClass} px-3 py-1 rounded-full text-xs font-bold transition">${v.weight}</button>`;
+                });
+                variantsHtml += '</div>';
+
+                // Determine current price to display
+                const currentVariantIdx = selectedVariants[p.id] || 0;
+                const currentPrice = p.variants[currentVariantIdx] ? p.variants[currentVariantIdx].price : p.price;
+
                 card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
                 card.innerHTML = `
                     <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4">
@@ -247,10 +315,13 @@
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="mb-2"><span class="text-[10px] uppercase font-bold text-[#8B5E3C] tracking-wider">${p.category}</span></div>
-                        <h3 class="font-bold text-[#1B3C59] text-lg leading-tight mb-1">${p.name}</h3>
-                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">${p.desc}</p>
+                        <h3 class="font-bold text-[#1B3C59] text-lg leading-tight mb-3">${p.name}</h3>
+
+                        <!-- Variant Selector -->
+                        ${variantsHtml}
+
                         <div class="mt-auto flex justify-between items-center pt-4 border-t border-dashed border-gray-100">
-                            <span class="text-[#1B3C59] font-extrabold text-xl">${formatPrice(p.price)}</span>
+                            <span id="price-${p.id}" class="text-[#1B3C59] font-extrabold text-xl">${formatPrice(currentPrice)}</span>
                             <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''} class="h-10 w-10 rounded-full flex items-center justify-center transition shadow-md ${outOfStock ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-[#1B3C59] hover:bg-[#8B5E3C] text-white'}"><i data-lucide="plus" class="w-5 h-5"></i></button>
                         </div>
                     </div>`;
@@ -290,9 +361,31 @@
         // --- CARRITO ---
         function addToCart(id) {
             const product = products.find(p => p.id === id);
-            const cartItem = cart.find(i => i.id === id);
+
+            // Get selected variant
+            const variantIdx = selectedVariants[id] || 0;
+            const variant = product.variants[variantIdx];
+
+            // Construct unique item ID for cart (Product ID + Variant Weight)
+            // Use a composite key or just compare properties
+            const variantLabel = variant ? variant.weight : '';
+            const finalPrice = variant ? variant.price : product.price;
+
+            const cartItem = cart.find(i => i.id === id && i.variantName === variantLabel);
+
             if((cartItem?.quantity || 0) >= product.stock) { Swal.fire({ icon: 'warning', title: 'Stock límite', confirmButtonColor: '#1B3C59' }); return; }
-            cartItem ? cartItem.quantity++ : cart.push({ ...product, quantity: 1 });
+
+            if(cartItem) {
+                cartItem.quantity++;
+            } else {
+                cart.push({
+                    ...product,
+                    price: finalPrice, // Override base price with variant price
+                    variantName: variantLabel,
+                    quantity: 1
+                });
+            }
+
             updateCartUI();
             const count = document.getElementById('cart-count');
             count.classList.add('scale-125'); setTimeout(() => count.classList.remove('scale-125'), 200);
@@ -330,7 +423,16 @@
                 count += item.quantity;
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3 border border-gray-100 shadow-sm';
-                div.innerHTML = `<div class="h-12 w-12 rounded-lg bg-white p-1 border border-gray-200 flex-shrink-0"><img src="${item.image}" class="w-full h-full object-cover rounded"></div><div class="flex-1 min-w-0"><div class="font-bold text-[#1B3C59] text-sm truncate">${item.name}</div><div class="text-[#8B5E3C] text-xs font-semibold">${item.quantity} x ${formatPrice(item.price)}</div></div><button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                div.innerHTML = `
+                    <div class="h-12 w-12 rounded-lg bg-white p-1 border border-gray-200 flex-shrink-0">
+                        <img src="${item.image}" class="w-full h-full object-cover rounded">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-[#1B3C59] text-sm truncate">${item.name}</div>
+                        <div class="text-xs text-gray-500 font-medium">${item.variantName ? item.variantName : ''}</div>
+                        <div class="text-[#8B5E3C] text-xs font-semibold">${item.quantity} x ${formatPrice(item.price)}</div>
+                    </div>
+                    <button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
                 container.appendChild(div);
             });
 
@@ -374,7 +476,11 @@
             if(cart.length===0) return;
             let msg = "Hola *Mascotitas*! 🐾\nQuiero realizar el siguiente pedido:\n\n";
             let total = 0;
-            cart.forEach(i => { msg += `▪️ ${i.quantity}x ${i.name} ($${i.price*i.quantity})\n`; total += i.price*i.quantity; });
+            cart.forEach(i => {
+                const variantText = i.variantName ? `(${i.variantName}) ` : '';
+                msg += `▪️ ${i.quantity}x ${i.name} ${variantText}($${i.price*i.quantity})\n`;
+                total += i.price*i.quantity;
+            });
 
             if (discountApplied) {
                  const discountAmount = total * 0.10;
