@@ -240,8 +240,8 @@
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
                 card.innerHTML = `
-                    <div class="relative h-56 bg-[#F9F9F9] overflow-hidden">
-                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4">
+                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition duration-500">
                         ${outOfStock ? '<div class="absolute inset-0 bg-[#1B3C59] bg-opacity-70 flex items-center justify-center text-white font-bold uppercase tracking-widest backdrop-blur-sm">Agotado</div>' : ''}
                         <div class="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm text-[#1B3C59] border border-gray-100">${p.stock} unid.</div>
                     </div>
