@@ -505,13 +505,14 @@
                  const finalTotal = total - discountAmount;
                  msg += `\nSubtotal: ${formatPrice(total)}`;
                  msg += `\nDescuento (MCO10): -${formatPrice(discountAmount)}`;
-                 msg += `\n*Envío Gratis* 🚚`;
+                 msg += `\nEnvío Bonificado: ~$4.300~ 🚚`;
                  msg += `\n*TOTAL: ${formatPrice(finalTotal)}*`;
             } else {
+                 msg += `\nEnvío Bonificado: ~$4.300~ 🚚`;
                  msg += `\n*TOTAL: ${formatPrice(total)}*`;
             }
 
-            msg += `\n\nQuedo a la espera para coordinar el pago. Gracias!`;
+            msg += `\n\nPor favor, indícanos tu nombre, email y dirección de entrega por este medio para coordinar el pago y el envío. ¡Muchas gracias!`;
             window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
         }
     </script>
