@@ -174,6 +174,7 @@
         let currentCategory = 'all';
         let discountApplied = false;
         let selectedVariants = {};
+        let productImageIndices = {};
 
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -208,6 +209,33 @@
                     }
                 });
             };
+
+            // Image Switching Logic
+            window.changeImage = function(productId, direction) {
+                const product = products.find(p => p.id === productId);
+                if (!product || product.images.length <= 1) return;
+
+                // Update index
+                let currentIdx = productImageIndices[productId] || 0;
+                let newIdx = currentIdx + direction;
+                if (newIdx >= product.images.length) newIdx = 0;
+                if (newIdx < 0) newIdx = product.images.length - 1;
+                productImageIndices[productId] = newIdx;
+
+                // Update DOM with animation
+                const imgEl = document.getElementById(`img-${productId}`);
+                if (imgEl) {
+                    imgEl.classList.add('opacity-0'); // Start fade out
+                    setTimeout(() => {
+                        imgEl.src = product.images[newIdx];
+                        imgEl.onload = () => {
+                            imgEl.classList.remove('opacity-0'); // Fade in
+                        };
+                        // Fallback if cached or instant
+                        setTimeout(() => imgEl.classList.remove('opacity-0'), 50);
+                    }, 200); // Wait for fade out
+                }
+            };
         });
 
         // --- CARGAR DATOS DESDE GOOGLE SHEETS ---
@@ -236,6 +264,12 @@
                         // Default price is the cheapest variant's price
                         const defaultPrice = variants.length > 0 ? variants[0].price : 0;
 
+                        // Parse images
+                        let images = [];
+                        if (item['image Principal'] && item['image Principal'].trim()) images.push(item['image Principal'].trim());
+                        if (item['image Secundaria'] && item['image Secundaria'].trim()) images.push(item['image Secundaria'].trim());
+                        if (images.length === 0) images.push('https://placehold.co/300x300?text=Sin+Foto');
+
                         return {
                             id: item.id || Math.random().toString(36).substr(2, 9),
                             name: item.name,
@@ -244,13 +278,15 @@
                             price: defaultPrice, // Base price for sorting/display
                             stock: parseInt(item.stock) || 0,
                             category: item.category ? item.category.toLowerCase().trim() : 'varios',
-                            image: item.image || 'https://placehold.co/300x300?text=Sin+Foto'
+                            images: images,
+                            image: images[0] // Default for cart
                         };
                     }).filter(p => p.name && p.variants.length > 0); // Only products with variants
 
                     // Initialize default selections (index 0 which is cheapest)
                     products.forEach(p => {
                         selectedVariants[p.id] = 0;
+                        productImageIndices[p.id] = 0;
                     });
 
                     // Calcular categorías únicas
@@ -325,10 +361,28 @@
                 const currentVariantIdx = selectedVariants[p.id] || 0;
                 const currentPrice = p.variants[currentVariantIdx] ? p.variants[currentVariantIdx].price : p.price;
 
+                // Image Logic
+                const currentImageIdx = productImageIndices[p.id] || 0;
+                const currentImage = p.images[currentImageIdx] || p.images[0];
+                const hasMultipleImages = p.images.length > 1;
+
+                let arrowsHtml = '';
+                if (hasMultipleImages) {
+                    arrowsHtml = `
+                        <button onclick="event.stopPropagation(); changeImage('${p.id}', -1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/50 hover:bg-white/80 text-[#1B3C59] p-1.5 rounded-full shadow-sm transition backdrop-blur-sm z-10 opacity-100">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); changeImage('${p.id}', 1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/50 hover:bg-white/80 text-[#1B3C59] p-1.5 rounded-full shadow-sm transition backdrop-blur-sm z-10 opacity-100">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                }
+
                 card.className = `bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-[#F5EFE0] flex flex-col group ${outOfStock ? 'opacity-75 grayscale' : ''}`;
                 card.innerHTML = `
-                    <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4">
-                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition duration-500">
+                    <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4 group/image">
+                        <img id="img-${p.id}" src="${currentImage}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition-opacity duration-300">
+                        ${arrowsHtml}
                         <div class="absolute top-3 right-3 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm border ${stockClass}">${stockText}</div>
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
