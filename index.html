@@ -290,6 +290,25 @@
 
             filtered.forEach(p => {
                 const outOfStock = p.stock <= 0;
+
+                // Logic for stock text and styling
+                let stockText = '';
+                let stockClass = 'bg-white/90 text-[#1B3C59] border-gray-100'; // Default style
+
+                if (p.stock <= 0) {
+                    stockText = 'Agotado';
+                    stockClass = 'bg-gray-100 text-gray-500 border-gray-200';
+                } else if (p.stock === 1) {
+                    stockText = 'Última 1 Unidad';
+                    stockClass = 'bg-orange-50 text-orange-700 border-orange-100';
+                } else if (p.stock === 2) {
+                    stockText = 'Últimas 2 Unidades';
+                    stockClass = 'bg-orange-50 text-orange-700 border-orange-100';
+                } else {
+                    stockText = 'Stock disponible';
+                    stockClass = 'bg-white/90 text-[#1B3C59] border-gray-100';
+                }
+
                 const card = document.createElement('div');
 
                 // Generate variant buttons
@@ -310,8 +329,7 @@
                 card.innerHTML = `
                     <div class="relative h-48 md:h-56 bg-white overflow-hidden p-4">
                         <img src="${p.image}" onerror="this.src='https://placehold.co/300x300?text=Sin+Foto'" class="w-full h-full object-contain transition duration-500">
-                        ${outOfStock ? '<div class="absolute inset-0 bg-[#1B3C59] bg-opacity-70 flex items-center justify-center text-white font-bold uppercase tracking-widest backdrop-blur-sm">Agotado</div>' : ''}
-                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm text-[#1B3C59] border border-gray-100">${p.stock} unid.</div>
+                        <div class="absolute top-3 right-3 backdrop-blur px-3 py-1 text-xs rounded-full font-bold shadow-sm border ${stockClass}">${stockText}</div>
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="mb-2"><span class="text-[10px] uppercase font-bold text-[#8B5E3C] tracking-wider">${p.category}</span></div>
