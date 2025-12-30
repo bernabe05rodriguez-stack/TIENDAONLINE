@@ -487,6 +487,15 @@
             if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
             if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+            // Sort: Move out-of-stock items to the bottom, preserving original order otherwise
+            filtered = filtered.slice().sort((a, b) => {
+                const aInStock = a.stock > 0;
+                const bInStock = b.stock > 0;
+                if (aInStock && !bInStock) return -1;
+                if (!aInStock && bInStock) return 1;
+                return 0;
+            });
+
             if (filtered.length === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-20 opacity-50"><i data-lucide="search" class="h-16 w-16 mx-auto mb-4 text-[#8B5E3C]"></i><p class="text-xl font-medium text-[#5D4037]">No hay productos que coincidan.</p></div>`;
                 lucide.createIcons();
